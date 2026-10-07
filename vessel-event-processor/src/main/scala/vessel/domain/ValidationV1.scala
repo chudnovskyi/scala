@@ -1,6 +1,6 @@
 package vessel.domain
 
-object Validation:
+object ValidationV1:
   def firstProblem(p: VesselPosition): Option[String] =
     if p.vesselId.isBlank then Some("vesselId must not be blank")
     else if !inRange(-90.0, 90.0, p.latitude) then Some("lat must be in [-90, 90]")
