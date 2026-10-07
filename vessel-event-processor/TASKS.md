@@ -1,22 +1,25 @@
 # Progress
 - [x] Task 1 — validation as `Option[String]`
-- [ ] Task 2 — typed errors: `enum`, `Either`, pattern matching  <- you are here
+- [x] Task 2 — typed errors: `enum`, `Either`, pattern matching
+- [ ] Task 3 — collections + for-comprehensions  <- you are here
 
-# Task 2 — Errors as data
+# Task 3 — Processing batches
 
-1. Create `src/main/scala/vessel/domain/ValidationError.scala`:
-   an `enum ValidationError` with cases
-   `BlankVesselId`, `LatitudeOutOfRange(value: Double)`, `LongitudeOutOfRange(value: Double)`, `SpeedOutOfRange(value: Double)`.
-2. In `ValidationError`'s companion/extension or in `Validation`, write
-   `def message(e: ValidationError): String` using a `match` (NO `default`/`case _` — let the compiler check exhaustiveness).
-3. In `Validation` add
-   `def validate(p: VesselPosition): Either[ValidationError, VesselPosition]`
-   Same rules and order as Task 1; first error wins; `Right(p)` when valid.
-4. Re-implement `isValid` via `validate`. Keep or delete `firstProblem` — if kept, derive it from `validate` + `message`.
-5. Update tests: assert on the error *value*, e.g.
-   `assertEquals(Validation.validate(ok.copy(latitude = 91.0)), Left(ValidationError.LatitudeOutOfRange(91.0)))`
-   Keep the NaN, boundary and "first wins" tests.
+New file `src/main/scala/vessel/processing/Batch.scala`, `package vessel.processing`, `object Batch:`
+Tests in `src/test/scala/vessel/processing/BatchSpec.scala`. Do the parts in order; each gets tests.
 
-Rules: no `var`, no `throw`, no `null`, no `case _` in the `message` match.
-Hint: write one tiny helper that turns "condition + error" into an Either, then chain the four checks.
-Stretch: `def validateAll(ps: List[VesselPosition]): (List[ValidationError], List[VesselPosition])` using `partition`/`collect`/`foldLeft` — your pick, no loops with mutation.
+A. `def validateAll(ps: List[VesselPosition]): (List[ValidationError], List[VesselPosition])`
+   Split a batch into errors and valid positions. Hint: look at `partitionMap` on List.
+B. `def groupByVessel(ps: List[VesselPosition]): Map[String, List[VesselPosition]]`
+   Each vessel's list sorted by timestamp ascending. Hint: `groupBy`, then transform the Map's values (`view.mapValues`/`map`), `sortBy`.
+C. `def averageSpeed(ps: List[VesselPosition]): Option[Double]`
+   `None` for an empty list (no division by zero / NaN). Use `foldLeft` OR `sum` — then do it the other way too and compare.
+D. `def parse(line: String): Either[String, VesselPosition]`
+   Line format: `vesselId,2026-01-01T00:00:00Z,51.9,4.4,12.5`.
+   Use a for-comprehension. Tools: `line.split(",")`, `toDoubleOption`, `Option.toRight("msg")`, `Try(Instant.parse(..)).toEither` or `.toOption`.
+   Bad field count / bad number / bad timestamp -> `Left("readable message")`.
+E. `def process(lines: List[String]): Map[String, Double]` — average speed per vessel from raw lines:
+   parse -> validate -> group -> average. Lines that fail parse or validation are dropped.
+   (Use `flatMap`/`collect`/for; no `var`, no loops with mutation.)
+
+Rules: no `var`, no `null`, no `throw`, no mutable collections, no `.get` on Option/Either.
