@@ -1,19 +1,22 @@
-# Task 1 — Validation as a pure function (`val`, methods, `Option`, pattern matching)
+# Progress
+- [x] Task 1 — validation as `Option[String]`
+- [ ] Task 2 — typed errors: `enum`, `Either`, pattern matching  <- you are here
 
-Create `src/main/scala/vessel/domain/Validation.scala`.
+# Task 2 — Errors as data
 
-Write a **pure function** that checks one `VesselPosition` and returns an `Option`:
+1. Create `src/main/scala/vessel/domain/ValidationError.scala`:
+   an `enum ValidationError` with cases
+   `BlankVesselId`, `LatitudeOutOfRange(value: Double)`, `LongitudeOutOfRange(value: Double)`, `SpeedOutOfRange(value: Double)`.
+2. In `ValidationError`'s companion/extension or in `Validation`, write
+   `def message(e: ValidationError): String` using a `match` (NO `default`/`case _` — let the compiler check exhaustiveness).
+3. In `Validation` add
+   `def validate(p: VesselPosition): Either[ValidationError, VesselPosition]`
+   Same rules and order as Task 1; first error wins; `Right(p)` when valid.
+4. Re-implement `isValid` via `validate`. Keep or delete `firstProblem` — if kept, derive it from `validate` + `message`.
+5. Update tests: assert on the error *value*, e.g.
+   `assertEquals(Validation.validate(ok.copy(latitude = 91.0)), Left(ValidationError.LatitudeOutOfRange(91.0)))`
+   Keep the NaN, boundary and "first wins" tests.
 
-    object Validation:
-      def firstProblem(p: VesselPosition): Option[String]   // None = valid
-
-Rules: vesselId non-blank; latitude in [-90, 90]; longitude in [-180, 180]; speedKnots in [0, 60].
-Return the *first* violated rule's message.
-
-Constraints (the point of the exercise):
-- No `var`, no `null`, no `return`, no mutable collections, no `throw`.
-- Prefer expressions over statements — an `if` / `match` is a value.
-- Write tests in `ValidationSpec.scala` first or alongside (valid, each bad field, boundaries, NaN!).
-- `isValid(p): Boolean` should be a one-liner derived from `firstProblem`.
-
-Run: `sbt test`, `sbt run`. When done, tell me and I'll review.
+Rules: no `var`, no `throw`, no `null`, no `case _` in the `message` match.
+Hint: write one tiny helper that turns "condition + error" into an Either, then chain the four checks.
+Stretch: `def validateAll(ps: List[VesselPosition]): (List[ValidationError], List[VesselPosition])` using `partition`/`collect`/`foldLeft` — your pick, no loops with mutation.
