@@ -12,4 +12,8 @@ object Batch {
         case Right(valid) => Right(valid)
         case Left(error) => Left(error)
     }
+    
+  def groupByVessel(ps: List[VesselPosition]): Map[String, List[VesselPosition]] = {
+    ps.groupBy(_.vesselId).map { (name, list) => name -> list.sortBy(_.timestamp) }
+  }
 }

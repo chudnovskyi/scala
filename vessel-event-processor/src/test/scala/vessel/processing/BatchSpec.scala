@@ -41,3 +41,36 @@ class BatchSpec extends munit.FunSuite:
     assertEquals(errors, List(LatOutOfRange(100.0)))
     assertEquals(valid, Nil)
   }
+
+  private val t0 = Instant.parse("2026-01-01T00:00:00Z")
+  private val t1 = Instant.parse("2026-01-01T01:00:00Z")
+  private val t2 = Instant.parse("2026-01-01T02:00:00Z")
+
+  test("groupByVessel on an empty list gives an empty map") {
+    assertEquals(Batch.groupByVessel(Nil), Map.empty[String, List[VesselPosition]])
+  }
+
+  test("groupByVessel with a single position gives a one-entry map") {
+    assertEquals(Batch.groupByVessel(List(ok)), Map("V1" -> List(ok)))
+  }
+
+  test("groupByVessel sorts each vessel's positions by timestamp ascending") {
+    val late = ok.copy(timestamp = t2)
+    val mid = ok.copy(timestamp = t1)
+    val early = ok.copy(timestamp = t0)
+
+    assertEquals(Batch.groupByVessel(List(late, early, mid)), Map("V1" -> List(early, mid, late)))
+  }
+
+  test("groupByVessel keeps vessels apart and sorts each independently") {
+    val a1 = ok.copy(vesselId = "A", timestamp = t1)
+    val a0 = ok.copy(vesselId = "A", timestamp = t0)
+    val b2 = ok.copy(vesselId = "B", timestamp = t2)
+    val b0 = ok.copy(vesselId = "B", timestamp = t0)
+
+    val grouped = Batch.groupByVessel(List(b2, a1, b0, a0))
+
+    assertEquals(grouped.keySet, Set("A", "B"))
+    assertEquals(grouped("A"), List(a0, a1))
+    assertEquals(grouped("B"), List(b0, b2))
+  }
