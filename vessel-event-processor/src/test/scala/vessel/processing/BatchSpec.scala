@@ -74,3 +74,34 @@ class BatchSpec extends munit.FunSuite:
     assertEquals(grouped("A"), List(a0, a1))
     assertEquals(grouped("B"), List(b0, b2))
   }
+
+  private def withSpeeds(speeds: Double*): List[VesselPosition] =
+    speeds.toList.map(s => ok.copy(speedKnots = s))
+
+  private val averageImplementations = List(
+    "averageSpeed" -> Batch.averageSpeed,
+    "averageSpeedFold" -> Batch.averageSpeedFold
+  )
+
+  averageImplementations.foreach { (name, average) =>
+    test(s"$name on an empty list gives None") {
+      assertEquals(average(Nil), None)
+    }
+
+    test(s"$name with a single position gives its speed") {
+      assertEquals(average(withSpeeds(7.5)), Some(7.5))
+    }
+
+    test(s"$name averages several positions") {
+      assertEquals(average(withSpeeds(5.0, 10.0, 15.0)), Some(10.0))
+    }
+
+    test(s"$name does not depend on the order of positions") {
+      assertEquals(average(withSpeeds(15.0, 5.0, 10.0)), Some(10.0))
+    }
+  }
+
+  test("averageSpeed and averageSpeedFold agree") {
+    val ps = withSpeeds(0.0, 3.3, 12.7, 59.9)
+    assertEquals(Batch.averageSpeedFold(ps), Batch.averageSpeed(ps))
+  }
